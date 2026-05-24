@@ -1,0 +1,42 @@
+sequenceDiagram
+    participant SCH as Scheduler (node-cron)
+    participant GS as GitSync Service
+    participant SG as simple-git
+    participant EB as EventBus (SSE)
+    participant TM as TaskModel
+    participant SLM as SyncLogModel
+    participant NTF as Notifier
+    participant DB as SQLite
+
+    SCH->>GS: executeSync(taskId, 'cron')
+    GS->>TM: updateTaskStatus(taskId, 'running')
+    TM->>DB: UPDATE tasks SET status='running'
+    TM->>EB: broadcast('taskStatusChange', {status:'running'})
+
+    GS->>SG: fetch origin +refs/heads/*:refs/heads/* +refs/tags/*:refs/tags/* --prune
+    Note over SG: 使用 source 认证（独立 env）
+    SG-->>GS: 源仓库拉取完成
+
+    GS->>SG: ls-remote target（获取目标现有 refs）
+    SG-->>GS: 目标 refs 列表
+
+    GS->>SG: rev-list --count 计算每个分支的待推送 commit 数
+    SG-->>GS: 各分支 commit 数（构建 SyncDetail）
+
+    GS->>SG: push --force target <refspecs>
+    Note over SG: 使用 target 认证（独立 env，避免 SSH key 冲突）
+    SG-->>GS: 推送结果
+
+    alt 同步成功
+        GS->>TM: updateTaskStatus(taskId, 'idle', lastSyncStatus='success')
+        TM->>EB: broadcast('taskStatusChange', {status:'idle'})
+        GS->>SLM: createSyncLog({status:'success', detail: SyncDetail})
+        GS->>NTF: sendSuccessNotification（仅 notify_on_success=true 时）
+    else 同步失败
+        GS->>TM: updateTaskStatus(taskId, 'error', errorMessage)
+        TM->>EB: broadcast('taskStatusChange', {status:'error'})
+        GS->>SLM: createSyncLog({status:'failed', errorMessage})
+        GS->>NTF: sendFailureNotification（始终发送）
+    end
+
+    NTF-->>GS: 通知异步发送（不阻塞）

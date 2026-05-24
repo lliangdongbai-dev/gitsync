@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitSync 部署手册</title>
+  <style>
+    :root {
+      --primary: #6366F1;
+      --secondary: #06B6D4;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --text: #1E293B;
+      --text-secondary: #64748B;
+      --border: #E2E8F0;
+      --code-bg: #1E293B;
+      --code-text: #E2E8F0;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.7;
+    }
+    .header {
+      background: linear-gradient(135deg, #1E293B 0%, #334155 100%);
+      color: white; padding: 60px 40px; text-align: center;
+    }
+    .header h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 10px; }
+    .header p { font-size: 1.1rem; opacity: 0.8; }
+    .container { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🚀 GitSync 部署手册</h1>
+  <p>单机部署 — 前端 + 后端 + 数据库一体化运行</p>
+</div>
+<div class="container">
+<style>
+    h2 { font-size:1.6rem;font-weight:700;margin:48px 0 20px;padding-bottom:10px;border-bottom:2px solid var(--secondary);color:var(--secondary); }
+    h3 { font-size:1.2rem;font-weight:600;margin:28px 0 12px;color:var(--text); }
+    p { margin:10px 0;color:var(--text-secondary); }
+    ul,ol { margin:10px 0 10px 24px;color:var(--text-secondary); }
+    li { margin:6px 0; }
+    table { width:100%;border-collapse:collapse;margin:16px 0;font-size:0.9rem; }
+    th,td { padding:10px 14px;border:1px solid var(--border);text-align:left; }
+    th { background:#F1F5F9;font-weight:600;color:var(--text); }
+    td { color:var(--text-secondary); }
+    code { background:#F1F5F9;padding:2px 6px;border-radius:4px;font-size:0.88em;font-family:'Fira Code','Consolas',monospace; }
+    pre { background:var(--code-bg);color:var(--code-text);padding:20px;border-radius:10px;overflow-x:auto;margin:16px 0;font-size:0.85rem;line-height:1.6;font-family:'Fira Code','Consolas',monospace; }
+    pre code { background:none;padding:0;color:inherit; }
+    .card { background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:24px;margin:16px 0; }
+    .tip { background:#EEF2FF;border-left:4px solid var(--primary);padding:14px 18px;border-radius:0 8px 8px 0;margin:16px 0;font-size:0.9rem; }
+    .warning { background:#FFFBEB;border-left:4px solid var(--warning);padding:14px 18px;border-radius:0 8px 8px 0;margin:16px 0;font-size:0.9rem; }
+    .danger { background:#FEF2F2;border-left:4px solid var(--danger);padding:14px 18px;border-radius:0 8px 8px 0;margin:16px 0;font-size:0.9rem; }
+    .arch-box { background:var(--card-bg);border:2px solid var(--secondary);border-radius:12px;padding:24px;margin:20px 0;text-align:center; }
+    .arch-box pre { background:#F8FAFC;color:var(--text);text-align:left; }
+    .comment { color:#6B7280; }
+    .footer { text-align:center;padding:40px;color:var(--text-secondary);font-size:0.85rem;border-top:1px solid var(--border);margin-top:60px; }
+</style>
+
+<h2>架构说明</h2>
+<div class="arch-box">
+  <p><strong>GitSync 是单进程一体化应用</strong>，前端构建后的静态文件由后端 Express 直接托管。</p>
+  <p>部署时只需启动一个 Node.js 进程，它同时提供：</p>
+  <ul style="text-align:left;display:inline-block;margin-top:12px;">
+    <li>📄 前端页面（静态文件，来自 <code>client/dist/</code>）</li>
+    <li>🔌 后端 API（<code>/api/*</code> 路由）</li>
+    <li>📡 SSE 实时推送（<code>/api/events</code>）</li>
+    <li>💾 SQLite 数据库（<code>data/gitsync.db</code>）</li>
+  </ul>
+  <pre style="margin-top:16px;"><code>┌─────────────────────────────────────────┐
+│           服务器 (单机部署)               │
+│                                         │
+│  ┌─────────────────────────────────┐    │
+│  │     Node.js 进程 (端口 3001)     │    │
+│  │                                 │    │
+│  │  ┌──────────┐  ┌────────────┐  │    │
+│  │  │ 前端静态  │  │  后端 API   │  │    │
+│  │  │ (React)  │  │ (Express)  │  │    │
+│  │  └──────────┘  └─────┬──────┘  │    │
+│  │                       │         │    │
+│  │              ┌────────┴───────┐ │    │
+│  │              │  SQLite 数据库  │ │    │
+│  │              │  data/gitsync.db│ │    │
+│  │              └────────────────┘ │    │
+│  └─────────────────────────────────┘    │
+│                                         │
+│  浏览器访问 → http://IP:3001            │
+└─────────────────────────────────────────┘</code></pre>
+</div>
+
+<div class="tip">💡 不需要分别部署前端和后端，也不需要 Nginx 做前端托管。一个端口搞定一切。</div>
+
+<h2>一、Docker Compose 部署（推荐）</h2>
+
+<h3>前置要求</h3>
+<ul>
+  <li>Docker 20.10+</li>
+  <li>Docker Compose v2+</li>
+</ul>
+
+<h3>部署步骤</h3>
+<pre><code><span class="comment"># 1. 上传项目到服务器（或 git clone）</span>
+git clone &lt;your-repo-url&gt; /opt/gitsync
+cd /opt/gitsync
+
+<span class="comment"># 2. 创建环境变量文件</span>
+cp .env.example .env
+
+<span class="comment"># 3. 编辑配置</span>
+vim .env
+
+<span class="comment"># 4. 一键构建并启动（前端+后端自动构建打包）</span>
+docker compose up -d --build
+
+<span class="comment"># 5. 查看日志确认启动成功</span>
+docker compose logs -f</code></pre>
+
+<div class="card">
+  <p><strong>Docker 构建过程（自动完成）：</strong></p>
+  <ol>
+    <li>Stage 1：构建前端 → <code>npm run build</code> → 生成 <code>client/dist/</code></li>
+    <li>Stage 2：构建后端 → <code>npm run build</code> → 生成 <code>server/dist/</code></li>
+    <li>Stage 3：运行时 → 将两者合并，安装 git，启动 Node.js</li>
+  </ol>
+  <p>最终容器内结构：</p>
+  <pre><code>/app/
+├── dist/           # 后端编译产物
+├── client/dist/    # 前端编译产物（由后端静态托管）
+├── data/           # 数据目录（持久化）
+│   ├── gitsync.db  # 数据库
+│   ├── repos/      # bare repo 缓存
+│   └── ssh_keys/   # SSH 私钥
+└── node_modules/   # 生产依赖</code></pre>
+</div>
+
+<h3>环境变量说明</h3>
+<div class="card">
+  <table>
+    <tr><th>变量</th><th>默认值</th><th>说明</th></tr>
+    <tr><td><code>PORT</code></td><td>3001</td><td>服务端口（前端+API 共用）</td></tr>
+    <tr><td><code>AUTH_USER</code></td><td>空</td><td>访问认证用户名（留空不启用）</td></tr>
+    <tr><td><code>AUTH_PASS</code></td><td>空</td><td>访问认证密码</td></tr>
+    <tr><td><code>ENCRYPTION_KEY</code></td><td>空</td><td>Token 加密密钥（32位字符串）</td></tr>
+    <tr><td><code>LOG_RETENTION_DAYS</code></td><td>7</td><td>同步日志保留天数</td></tr>
+    <tr><td><code>DB_PATH</code></td><td>data/gitsync.db</td><td>数据库文件路径</td></tr>
+    <tr><td><code>REPO_DIR</code></td><td>data/repos</td><td>bare repo 缓存目录</td></tr>
+    <tr><td><code>SSH_KEY_DIR</code></td><td>data/ssh_keys</td><td>SSH 私钥目录</td></tr>
+  </table>
+</div>
+
+<h3>SSH Key 配置</h3>
+<pre><code><span class="comment"># 将私钥复制到容器</span>
+docker cp ~/.ssh/id_rsa gitsync:/app/data/ssh_keys/id_rsa
+
+<span class="comment"># 设置权限（必须为 600）</span>
+docker exec gitsync chmod 600 /app/data/ssh_keys/id_rsa</code></pre>
+
+<h3>访问服务</h3>
+<p>部署完成后浏览器访问：<code>http://&lt;服务器IP&gt;:3001</code></p>
+<p>前端页面和后端 API 都在这一个端口上。</p>
+
+<h2>二、Node.js 直接部署（无 Docker）</h2>
+
+<h3>前置要求</h3>
+<ul>
+  <li>Node.js 20+（<code>node -v</code> 确认）</li>
+  <li>npm 9+</li>
+  <li>Git 2.30+（<code>git --version</code> 确认）</li>
+</ul>
+
+<h3>完整部署步骤</h3>
+<pre><code><span class="comment"># 1. 上传项目到服务器</span>
+git clone &lt;your-repo-url&gt; /opt/gitsync
+cd /opt/gitsync
+
+<span class="comment"># 2. 构建前端（生成 client/dist/）</span>
+cd client
+npm ci
+npm run build
+cd ..
+
+<span class="comment"># 3. 构建后端（生成 server/dist/）</span>
+cd server
+npm ci
+npm run build
+
+<span class="comment"># 4. 配置环境变量</span>
+cp ../.env.example .env
+vim .env
+
+<span class="comment"># 5. 直接启动（测试用）</span>
+node dist/index.js</code></pre>
+
+<div class="tip">
+  💡 后端启动后会自动托管 <code>client/dist/</code> 目录的前端文件。<br>
+  访问 <code>http://IP:3001</code> 即可看到完整的前端界面 + API。
+</div>
+
+<h3>使用 PM2 守护进程（生产推荐）</h3>
+<pre><code><span class="comment"># 安装 PM2</span>
+npm install -g pm2
+
+<span class="comment"># 使用项目自带的配置启动</span>
+cd /opt/gitsync
+pm2 start ecosystem.config.js
+
+<span class="comment"># 查看状态</span>
+pm2 status
+
+<span class="comment"># 查看日志</span>
+pm2 logs gitsync
+
+<span class="comment"># 设置开机自启</span>
+pm2 startup
+pm2 save</code></pre>
+
+<div class="card">
+  <p><strong>PM2 ecosystem.config.js 说明：</strong></p>
+  <ul>
+    <li>工作目录：<code>./server</code></li>
+    <li>入口文件：<code>dist/index.js</code>（编译后的后端）</li>
+    <li>自动重启、内存超 512M 自动重启</li>
+  </ul>
+</div>
+
+<h2>三、反向代理（可选）</h2>
+<p>如果需要域名访问或 HTTPS，在前面加一层反向代理：</p>
+
+<h3>Nginx 配置</h3>
+<pre><code>server {
+    listen 80;
+    server_name gitsync.example.com;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name gitsync.example.com;
+
+    ssl_certificate /etc/nginx/ssl/cert.pem;
+    ssl_certificate_key /etc/nginx/ssl/key.pem;
+
+    <span class="comment"># 所有请求都转发到 Node.js（前端+API 都在 3001）</span>
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    <span class="comment"># SSE 实时推送需要关闭缓冲</span>
+    location /api/events {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host $host;
+        proxy_set_header Connection '';
+        proxy_http_version 1.1;
+        chunked_transfer_encoding off;
+        proxy_buffering off;
+        proxy_cache off;
+    }
+}</code></pre>
+
+<h3>Caddy 配置（自动 HTTPS）</h3>
+<pre><code>gitsync.example.com {
+    reverse_proxy localhost:3001
+}</code></pre>
+<div class="tip">💡 Caddy 自动申请和续期 Let's Encrypt 证书，零配置 HTTPS。</div>
+
+<h2>四、安全配置</h2>
+
+<h3>生产环境必做清单</h3>
+<div class="card">
+  <ol>
+    <li>✅ 设置 <code>AUTH_USER</code> + <code>AUTH_PASS</code> 启用访问认证</li>
+    <li>✅ 设置 <code>ENCRYPTION_KEY</code> 加密存储的 Token</li>
+    <li>✅ 使用 HTTPS（反向代理 + SSL 证书）</li>
+    <li>✅ 防火墙只开放 80/443，不直接暴露 3001 端口</li>
+    <li>✅ SSH 私钥权限设为 600</li>
+  </ol>
+</div>
+
+<h3>生成加密密钥</h3>
+<pre><code><span class="comment"># 生成 32 位随机密钥</span>
+openssl rand -hex 16
+<span class="comment"># 输出类似：a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6</span></code></pre>
+
+<h2>五、备份与恢复</h2>
+
+<h3>备份</h3>
+<p>所有数据都在 <code>data/</code> 目录下，备份这个目录即可：</p>
+<pre><code><span class="comment"># Docker 环境</span>
+docker cp gitsync:/app/data ./backup-$(date +%Y%m%d)
+
+<span class="comment"># 直接部署</span>
+cp -r /opt/gitsync/server/data ./backup-$(date +%Y%m%d)</code></pre>
+
+<div class="card">
+  <p><strong>数据目录结构：</strong></p>
+  <table>
+    <tr><th>文件/目录</th><th>说明</th><th>是否必须备份</th></tr>
+    <tr><td><code>data/gitsync.db</code></td><td>SQLite 数据库（任务、日志、设置）</td><td>✅ 必须</td></tr>
+    <tr><td><code>data/ssh_keys/</code></td><td>SSH 私钥文件</td><td>✅ 必须</td></tr>
+    <tr><td><code>data/repos/</code></td><td>本地 bare repo 缓存</td><td>❌ 可选（会自动重建）</td></tr>
+  </table>
+</div>
+
+<h3>恢复</h3>
+<pre><code><span class="comment"># Docker 环境</span>
+docker compose down
+docker cp ./backup-20260523/. gitsync:/app/data/
+docker compose up -d
+
+<span class="comment"># 直接部署</span>
+pm2 stop gitsync
+cp -r ./backup-20260523/* /opt/gitsync/server/data/
+pm2 start gitsync</code></pre>
+
+<h2>六、升级</h2>
+
+<h3>Docker 环境</h3>
+<pre><code>cd /opt/gitsync
+git pull
+
+<span class="comment"># 重新构建并启动（前端+后端一起）</span>
+docker compose up -d --build</code></pre>
+
+<h3>直接部署</h3>
+<pre><code>cd /opt/gitsync
+git pull
+
+<span class="comment"># 重新构建前端</span>
+cd client && npm ci && npm run build && cd ..
+
+<span class="comment"># 重新构建后端</span>
+cd server && npm ci && npm run build && cd ..
+
+<span class="comment"># 重启</span>
+pm2 restart gitsync</code></pre>
+
+<div class="tip">💡 数据库迁移是自动的。启动时会检测表结构变化并自动添加新字段，无需手动操作。</div>
+
+<h2>七、故障排查</h2>
+
+<h3>常见问题</h3>
+<div class="card">
+  <table>
+    <tr><th>现象</th><th>原因</th><th>解决方案</th></tr>
+    <tr><td>访问 3001 端口无响应</td><td>服务未启动或端口被占用</td><td><code>pm2 status</code> 检查；<code>lsof -i:3001</code> 查端口</td></tr>
+    <tr><td>页面空白</td><td>前端未构建</td><td>确认 <code>client/dist/</code> 目录存在且有文件</td></tr>
+    <tr><td><code>Authentication failed</code></td><td>Token 无效或过期</td><td>在页面上更新 Token</td></tr>
+    <tr><td><code>Permission denied (publickey)</code></td><td>SSH Key 路径或权限错误</td><td>检查 <code>data/ssh_keys/</code> 下文件权限为 600</td></tr>
+    <tr><td><code>Repository not found</code></td><td>URL 错误或 Token 无权限</td><td>检查仓库 URL 和 Token scope</td></tr>
+    <tr><td><code>remote rejected</code></td><td>目标仓库有保护分支</td><td>在目标平台关闭分支保护规则</td></tr>
+    <tr><td><code>Could not resolve host</code></td><td>DNS 解析失败</td><td>检查服务器 DNS 配置</td></tr>
+    <tr><td>定时同步不执行</td><td>任务未启动</td><td>点击 ▶ 按钮启动任务</td></tr>
+  </table>
+</div>
+
+<h3>查看日志</h3>
+<pre><code><span class="comment"># Docker</span>
+docker compose logs -f
+
+<span class="comment"># PM2</span>
+pm2 logs gitsync --lines 50
+
+<span class="comment"># 直接查看</span>
+tail -f ~/.pm2/logs/gitsync-out.log</code></pre>
+
+<h3>健康检查</h3>
+<pre><code>curl http://localhost:3001/api/health
+<span class="comment"># 正常返回：</span>
+<span class="comment"># {"code":0,"data":{"status":"ok","uptime":12345,"db":"ok"},"message":"ok"}</span></code></pre>
+
+<h2>八、系统要求</h2>
+<div class="card">
+  <table>
+    <tr><th>项目</th><th>最低要求</th><th>推荐配置</th></tr>
+    <tr><td>CPU</td><td>1 核</td><td>2 核</td></tr>
+    <tr><td>内存</td><td>512MB</td><td>1GB</td></tr>
+    <tr><td>磁盘</td><td>1GB + 仓库缓存大小</td><td>10GB+</td></tr>
+    <tr><td>系统</td><td>Linux x64 / arm64</td><td>Ubuntu 22.04 / Debian 12</td></tr>
+    <tr><td>网络</td><td>能访问源和目标仓库</td><td>带宽越大同步越快</td></tr>
+  </table>
+</div>
+
+<h2>九、一键部署脚本</h2>
+<p>适用于全新的 Linux 服务器（需要 root 权限）：</p>
+<pre><code><span class="comment">#!/bin/bash</span>
+<span class="comment"># GitSync 一键部署脚本</span>
+set -e
+
+<span class="comment"># 安装 Docker（如果未安装）</span>
+if ! command -v docker &amp;&gt; /dev/null; then
+    echo "正在安装 Docker..."
+    curl -fsSL https://get.docker.com | sh
+    systemctl enable docker
+    systemctl start docker
+fi
+
+<span class="comment"># 克隆项目</span>
+git clone &lt;your-repo-url&gt; /opt/gitsync
+cd /opt/gitsync
+
+<span class="comment"># 生成安全配置</span>
+ENCRYPTION_KEY=$(openssl rand -hex 16)
+AUTH_PASS=$(openssl rand -base64 12)
+
+cat &gt; .env &lt;&lt; EOF
+AUTH_USER=admin
+AUTH_PASS=$AUTH_PASS
+ENCRYPTION_KEY=$ENCRYPTION_KEY
+LOG_RETENTION_DAYS=30
+EOF
+
+<span class="comment"># 构建并启动</span>
+docker compose up -d --build
+
+<span class="comment"># 输出信息</span>
+SERVER_IP=$(hostname -I | awk '{print $1}')
+echo ""
+echo "======================================"
+echo "  GitSync 部署完成！"
+echo "======================================"
+echo "  访问地址: http://$SERVER_IP:3001"
+echo "  用户名:   admin"
+echo "  密码:     $AUTH_PASS"
+echo "  加密密钥: $ENCRYPTION_KEY"
+echo "======================================"
+echo "  配置文件: /opt/gitsync/.env"
+echo "  数据目录: Docker volume (gitsync-data)"
+echo "======================================"</code></pre>
+
+</div>
+
+<div class="footer">
+  GitSync v1.0.0 — Git 仓库定时同步工具<br>
+  单机部署，一个端口，前端 + 后端 + 数据库一体化运行
+</div>
+
+</body>
+</html>

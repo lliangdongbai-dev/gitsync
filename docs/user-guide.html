@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitSync 使用手册</title>
+  <style>
+    :root {
+      --primary: #6366F1;
+      --secondary: #06B6D4;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --text: #1E293B;
+      --text-secondary: #64748B;
+      --border: #E2E8F0;
+      --code-bg: #F1F5F9;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      padding: 0;
+    }
+    .header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: white;
+      padding: 60px 40px;
+      text-align: center;
+    }
+    .header h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 10px; }
+    .header p { font-size: 1.1rem; opacity: 0.9; }
+    .container { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin: 48px 0 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--primary);
+      color: var(--primary);
+    }
+    h3 { font-size: 1.2rem; font-weight: 600; margin: 28px 0 12px; color: var(--text); }
+    p { margin: 10px 0; color: var(--text-secondary); }
+    ul, ol { margin: 10px 0 10px 24px; color: var(--text-secondary); }
+    li { margin: 6px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem; }
+    th, td { padding: 10px 14px; border: 1px solid var(--border); text-align: left; }
+    th { background: var(--code-bg); font-weight: 600; color: var(--text); }
+    td { color: var(--text-secondary); }
+    code {
+      background: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.88em;
+      font-family: 'Fira Code', 'Consolas', monospace;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin: 16px 0;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      margin-right: 6px;
+    }
+    .badge-primary { background: #EEF2FF; color: var(--primary); }
+    .badge-success { background: #ECFDF5; color: var(--success); }
+    .badge-warning { background: #FFFBEB; color: var(--warning); }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin: 20px 0;
+    }
+    .feature-item {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      text-align: center;
+    }
+    .feature-item .icon { font-size: 1.8rem; margin-bottom: 8px; }
+    .feature-item h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 4px; }
+    .feature-item p { font-size: 0.82rem; margin: 0; }
+    .steps { counter-reset: step; }
+    .steps li { counter-increment: step; list-style: none; position: relative; padding-left: 36px; margin: 14px 0; }
+    .steps li::before {
+      content: counter(step);
+      position: absolute; left: 0; top: 2px;
+      width: 24px; height: 24px;
+      background: var(--primary); color: white;
+      border-radius: 50%; text-align: center;
+      font-size: 0.8rem; line-height: 24px; font-weight: 700;
+    }
+    .tip {
+      background: #EEF2FF;
+      border-left: 4px solid var(--primary);
+      padding: 14px 18px;
+      border-radius: 0 8px 8px 0;
+      margin: 16px 0;
+      font-size: 0.9rem;
+    }
+    .warning {
+      background: #FFFBEB;
+      border-left: 4px solid var(--warning);
+      padding: 14px 18px;
+      border-radius: 0 8px 8px 0;
+      margin: 16px 0;
+      font-size: 0.9rem;
+    }
+    .faq-item { margin: 20px 0; }
+    .faq-item strong { color: var(--text); display: block; margin-bottom: 4px; }
+    .footer {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+      margin-top: 60px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📖 GitSync 使用手册</h1>
+  <p>Git 仓库定时同步工具 — 完整使用指南</p>
+</div>
+
+<div class="container">
+
+  <h2>功能概览</h2>
+  <div class="feature-grid">
+    <div class="feature-item"><div class="icon">🔄</div><h4>定时同步</h4><p>可配置频率，自动执行</p></div>
+    <div class="feature-item"><div class="icon">🌿</div><h4>灵活分支选择</h4><p>全量/自定义多选</p></div>
+    <div class="feature-item"><div class="icon">🔐</div><h4>双重认证</h4><p>HTTPS Token / SSH Key</p></div>
+    <div class="feature-item"><div class="icon">📊</div><h4>仪表盘</h4><p>任务数、成功率一目了然</p></div>
+    <div class="feature-item"><div class="icon">📋</div><h4>详细日志</h4><p>每个分支的 commit 数</p></div>
+    <div class="feature-item"><div class="icon">🔔</div><h4>多渠道通知</h4><p>钉钉/飞书/邮件/Webhook</p></div>
+  </div>
+
+  <h2>快速开始</h2>
+
+  <h3>创建同步任务</h3>
+  <ol class="steps">
+    <li>进入「任务列表」页面，点击「新建任务」</li>
+    <li>填写任务名称（如：生产环境代码同步）</li>
+    <li>配置源仓库 URL 和认证方式（HTTPS Token 或 SSH Key）</li>
+    <li>配置目标仓库 URL 和认证方式</li>
+    <li>选择同步范围（所有分支+标签 / 自定义选择）</li>
+    <li>设置同步频率（如每5分钟、每小时）</li>
+    <li>点击「创建任务」完成</li>
+  </ol>
+
+  <h3>启动与操作</h3>
+  <div class="card">
+    <table>
+      <tr><th>操作</th><th>按钮</th><th>说明</th></tr>
+      <tr><td>启动定时同步</td><td>▶ 绿色按钮</td><td>按设定频率自动执行同步</td></tr>
+      <tr><td>停止定时同步</td><td>⏹ 黄色按钮</td><td>暂停自动同步</td></tr>
+      <tr><td>手动触发</td><td>🔄 蓝色按钮</td><td>立即执行一次同步，完成后弹出结果提示</td></tr>
+      <tr><td>编辑任务</td><td>✏️ 编辑按钮</td><td>修改任务配置</td></tr>
+      <tr><td>删除任务</td><td>🗑️ 删除按钮</td><td>删除任务及本地缓存</td></tr>
+    </table>
+  </div>
+
+  <h2>同步范围配置</h2>
+
+  <div class="card">
+    <table>
+      <tr><th>模式</th><th>说明</th></tr>
+      <tr><td><span class="badge badge-primary">所有分支 + 标签</span></td><td>完整镜像，同步源仓库的全部分支和标签</td></tr>
+      <tr><td><span class="badge badge-primary">仅所有分支</span></td><td>只同步分支，不同步标签</td></tr>
+      <tr><td><span class="badge badge-primary">仅所有标签</span></td><td>只同步标签，不同步分支</td></tr>
+      <tr><td><span class="badge badge-success">自定义选择</span></td><td>手动选择要同步的特定分支和标签</td></tr>
+    </table>
+  </div>
+
+  <h3>自定义选择模式</h3>
+  <ul>
+    <li>切换到「自定义选择」后，系统自动从源仓库获取分支和标签列表</li>
+    <li>支持多选、搜索过滤、全选/清空快捷操作</li>
+    <li>也可以手动输入分支/标签名称（即使获取列表失败）</li>
+    <li>点击「获取远程分支」按钮可随时刷新列表</li>
+  </ul>
+
+  <h2>认证配置</h2>
+
+  <h3>HTTPS Token</h3>
+  <p>适用于 HTTPS 格式的仓库 URL（如 <code>https://github.com/user/repo.git</code>）</p>
+  <div class="card">
+    <table>
+      <tr><th>平台</th><th>Token 获取方式</th></tr>
+      <tr><td>GitHub</td><td>Settings → Developer settings → Personal access tokens</td></tr>
+      <tr><td>GitLab</td><td>Settings → Access Tokens</td></tr>
+      <tr><td>Gitee</td><td>设置 → 私人令牌</td></tr>
+    </table>
+  </div>
+  <div class="tip">Token 需要有仓库的读写权限（repo scope）。</div>
+
+  <h3>SSH Key</h3>
+  <p>适用于 SSH 格式的仓库 URL（如 <code>git@github.com:user/repo.git</code>）</p>
+  <p>填写 SSH 私钥文件名或绝对路径，系统按以下顺序查找：</p>
+  <ol>
+    <li><code>data/ssh_keys/&lt;文件名&gt;</code>（应用目录）</li>
+    <li><code>~/.ssh/&lt;文件名&gt;</code>（用户 home 目录）</li>
+  </ol>
+
+  <h2>通知配置</h2>
+
+  <h3>通知策略</h3>
+  <div class="card">
+    <p><strong>默认行为：</strong>仅同步失败时发送通知</p>
+    <p>在「系统设置」中可开启「同步成功时也发送通知」开关，开启后成功和失败都会通知。</p>
+  </div>
+
+  <h3>支持的通知渠道</h3>
+  <table>
+    <tr><th>渠道</th><th>配置项</th><th>说明</th></tr>
+    <tr><td>钉钉机器人</td><td>Webhook URL + 签名密钥</td><td>通过钉钉群机器人推送</td></tr>
+    <tr><td>飞书机器人</td><td>Webhook URL + 签名密钥</td><td>通过飞书群机器人推送</td></tr>
+    <tr><td>邮件 (SMTP)</td><td>SMTP 服务器 + 收发件人</td><td>通过邮件推送</td></tr>
+    <tr><td>通用 Webhook</td><td>URL</td><td>POST JSON 到任意 URL</td></tr>
+  </table>
+  <div class="tip">每个渠道独立启用/禁用，配置后可点击「测试发送」验证。</div>
+
+  <h2>同步日志</h2>
+  <p>进入「同步日志」页面查看历史记录：</p>
+  <ul>
+    <li>支持按任务、状态筛选</li>
+    <li>点击任意一行展开查看详情：</li>
+  </ul>
+  <div class="card">
+    <p><strong>详情内容：</strong></p>
+    <ul>
+      <li>🌿 每个分支同步的 commit 数（如 <code>dev: 3 commits</code>、<code>master: 0 commits</code>）</li>
+      <li>🏷️ 标签同步状态（新增/已存在）</li>
+      <li>📊 同步模式和总 commit 数</li>
+    </ul>
+  </div>
+
+  <h2>任务卡片信息</h2>
+  <p>每个任务卡片显示以下信息：</p>
+  <ul>
+    <li>任务名称和运行状态</li>
+    <li>源仓库 → 目标仓库（含认证方式图标）</li>
+    <li>同步频率（如「每5分钟」）</li>
+    <li>同步范围摘要（如「2个分支 + 3个标签」）</li>
+    <li>上次同步时间</li>
+    <li><span class="badge badge-success">下次同步倒计时</span>（仅运行中的任务显示）</li>
+    <li>错误信息（如有）</li>
+  </ul>
+
+  <h2>访问认证</h2>
+  <p>在「系统设置」中可配置 Basic Auth 保护：</p>
+  <ul>
+    <li>设置用户名和密码后，访问页面和 API 都需要认证</li>
+    <li>留空则不启用认证</li>
+  </ul>
+  <div class="warning">⚠️ 生产环境强烈建议启用认证并配合 HTTPS 使用。</div>
+
+  <h2>常见问题</h2>
+
+  <div class="faq-item">
+    <strong>Q: 修改了同步频率后需要重启任务吗？</strong>
+    <p>A: 不需要。保存任务后系统会自动更新定时计划。</p>
+  </div>
+  <div class="faq-item">
+    <strong>Q: 源仓库和目标仓库可以用不同的认证方式吗？</strong>
+    <p>A: 可以。源仓库和目标仓库的认证是完全独立配置的。</p>
+  </div>
+  <div class="faq-item">
+    <strong>Q: 同步会覆盖目标仓库的内容吗？</strong>
+    <p>A: 是的。同步使用 <code>--force</code> 推送，目标仓库的对应分支会被源仓库完全覆盖。请确保目标仓库仅用于镜像。</p>
+  </div>
+  <div class="faq-item">
+    <strong>Q: 删除任务会清理本地缓存吗？</strong>
+    <p>A: 会。删除任务时会自动清理本地的 bare repo 缓存目录。</p>
+  </div>
+  <div class="faq-item">
+    <strong>Q: 同步失败后任务会停止吗？</strong>
+    <p>A: 不会。任务状态会变为「异常」，但定时计划仍然有效，下次触发时会重新尝试同步。</p>
+  </div>
+
+</div>
+
+<div class="footer">
+  GitSync v1.0.0 — Git 仓库定时同步工具
+</div>
+
+</body>
+</html>

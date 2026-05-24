@@ -1,0 +1,46 @@
+sequenceDiagram
+    participant UI as React 前端
+    participant API as Express 路由
+    participant TM as TaskModel
+    participant SCH as Scheduler
+    participant EB as EventBus (SSE)
+    participant DB as SQLite
+
+    Note over UI,DB: 创建任务
+    UI->>API: POST /api/tasks {name, sourceRepo, targetRepo, branches, syncFrequency, ...}
+    API->>TM: createTask(req)
+    TM->>DB: INSERT INTO tasks (branches JSON, sync_frequency 分钟数, ...)
+    DB-->>TM: 返回新任务
+    TM-->>API: Task 对象
+    API-->>UI: {code:0, data: Task}
+
+    Note over UI,DB: 启动定时同步
+    UI->>API: POST /api/sync/:id/start
+    API->>TM: updateTaskStatus(id, 'idle')
+    TM->>DB: UPDATE tasks SET status='idle'
+    TM->>EB: broadcast('taskStatusChange', {status:'idle'})
+    API->>SCH: registerTask(taskId, syncFrequency分钟)
+    Note over SCH: minutesToCron(N) → "0 */N * * * *"
+    SCH-->>API: 注册成功
+    API-->>UI: {code:0, data: {taskId, status:'idle'}}
+
+    Note over UI,DB: 手动触发同步（等待结果）
+    UI->>API: POST /api/sync/:id/trigger
+    API->>API: executeSync(taskId, 'manual')
+    Note over API: 同步等待完成（非异步）
+    API-->>UI: {code:0, data: SyncLog, message:'同步成功/失败'}
+
+    Note over UI,DB: 编辑任务（频率变更自动重注册）
+    UI->>API: PUT /api/tasks/:id {syncFrequency: 新频率}
+    API->>TM: updateTask(id, req)
+    TM->>DB: UPDATE tasks SET sync_frequency=新频率
+    API->>SCH: registerTask(taskId, 新频率) [若任务已注册则重注册]
+    API-->>UI: {code:0, data: Task}
+
+    Note over UI,DB: 删除任务（清理本地缓存）
+    UI->>API: DELETE /api/tasks/:id
+    API->>SCH: unregisterTask(taskId)
+    API->>TM: deleteTask(id)
+    TM->>DB: DELETE FROM tasks WHERE id=?
+    Note over TM: 自动删除 data/repos/{taskId}/ 目录
+    API-->>UI: {code:0, data: {}}

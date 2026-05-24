@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  gitsync:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gitsync
+    ports:
+      - "3001:3001"
+    volumes:
+      - gitsync-data:/app/data
+      - gitsync-ssh:/root/.ssh
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DB_PATH=/app/data/gitsync.db
+      - REPO_DIR=/app/data/repos
+      - SSH_KEY_DIR=/app/data/ssh_keys
+      - AUTH_USER=${AUTH_USER:-}
+      - AUTH_PASS=${AUTH_PASS:-}
+      - LOG_RETENTION_DAYS=${LOG_RETENTION_DAYS:-7}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  gitsync-data:
+    driver: local
+  gitsync-ssh:
+    driver: local
