@@ -179,21 +179,22 @@ git clone &lt;your-repo-url&gt; /opt/gitsync
 cd /opt/gitsync
 
 <span class="comment"># 2. 构建前端（生成 client/dist/）</span>
-cd client
+cd /opt/gitsync/client
 npm ci
 npm run build
-cd ..
 
 <span class="comment"># 3. 构建后端（生成 server/dist/）</span>
-cd server
+cd /opt/gitsync/server
 npm ci
 npm run build
 
 <span class="comment"># 4. 配置环境变量</span>
-cp ../.env.example .env
-vim .env
+cd /opt/gitsync
+cp .env.example server/.env
+vim server/.env
 
 <span class="comment"># 5. 直接启动（测试用）</span>
+cd /opt/gitsync/server
 node dist/index.js</code></pre>
 
 <div class="tip">
@@ -335,10 +336,14 @@ docker compose up -d --build</code></pre>
 git pull
 
 <span class="comment"># 重新构建前端</span>
-cd client && npm ci && npm run build && cd ..
+cd /opt/gitsync/client
+npm ci
+npm run build
 
 <span class="comment"># 重新构建后端</span>
-cd server && npm ci && npm run build && cd ..
+cd /opt/gitsync/server
+npm ci
+npm run build
 
 <span class="comment"># 重启</span>
 pm2 restart gitsync</code></pre>

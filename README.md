@@ -31,27 +31,37 @@ docker compose up -d --build
 ### Node.js 直接部署
 
 ```bash
+git clone <your-repo-url> /opt/gitsync
+
 # 构建前端（生成 client/dist/）
-cd client && npm ci && npm run build && cd ..
+cd /opt/gitsync/client
+npm ci
+npm run build
 
 # 构建后端（生成 server/dist/）
-cd server && npm ci && npm run build
+cd /opt/gitsync/server
+npm ci
+npm run build
 
 # 配置环境变量
+cd /opt/gitsync
 cp .env.example server/.env
 
 # 启动（前端静态文件由后端 Express 托管）
-node server/dist/index.js
+cd /opt/gitsync/server
+node dist/index.js
 ```
 
 ### 开发模式
 
 ```bash
 # 终端1：启动后端
-cd server && npm run dev
+cd /path/to/gitsync/server
+npm run dev
 
 # 终端2：启动前端（Vite 热更新，代理 /api 到 3001）
-cd client && npm run dev
+cd /path/to/gitsync/client
+npm run dev
 ```
 
 ## 📁 项目结构
